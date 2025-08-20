@@ -1,51 +1,56 @@
 // Cập nhật thời gian hiện tại
 function updateCurrentTime() {
-    const currentTimeElement = document.getElementById('current-time');
-    currentTimeElement.textContent = moment().format('DD/MM/YYYY HH:mm:ss');
+  const el = document.getElementById('current-time');
+  if (el && typeof moment !== 'undefined') {
+    el.textContent = moment().format('DD/MM/YYYY HH:mm:ss');
+  }
 }
 
 // Cập nhật thời gian mỗi giây
-setInterval(updateCurrentTime, 1000);
-updateCurrentTime();
+let _clock = null;
+function startClock() {
+  if (_clock) clearInterval(_clock);
+  updateCurrentTime();
+  _clock = setInterval(updateCurrentTime, 1000);
+}
 
 // Hiển thị cảnh báo
 function showAlert(message, type = 'error') {
-    const alertContainer = document.getElementById('alert-container');
-    const alertElement = document.createElement('div');
-    alertElement.className = `alert alert-${type}`;
-    alertElement.textContent = message;
-    
-    alertContainer.appendChild(alertElement);
-    
-    // Tự động xóa cảnh báo sau 5 giây
-    setTimeout(() => {
-        alertElement.remove();
-    }, 5000);
+  const alertContainer = document.getElementById('alert-container');
+  if (!alertContainer) return;
+  const alertElement = document.createElement('div');
+  alertElement.className = `alert alert-${type}`;
+  alertElement.textContent = message;
+  alertContainer.appendChild(alertElement);
+  setTimeout(() => alertElement.remove(), 5000);
 }
 
-// Chuyển đổi giữa các view
+// Chuyển view
 function showView(viewId) {
-    const views = document.querySelectorAll('.view');
-    views.forEach(view => {
-        view.classList.remove('active');
-    });
-    
-    const targetView = document.getElementById(viewId);
-    if (targetView) {
-        targetView.classList.add('active');
-    }
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const target = document.getElementById(viewId);
+  if (target) target.classList.add('active');
 }
 
-// Xử lý nút quay lại dashboard
-document.getElementById('back-to-dashboard').addEventListener('click', () => {
-    showView('dashboard-view');
-});
-
-// Khởi tạo ứng dụng
+// Khởi tạo ứng dụng – CHỈ GỌI TỪ Controller onInit
 function initApp() {
-    // Hiển thị view mặc định
-    showView('dashboard-view');
+  // Giờ
+  startClock();
+
+  // Gắn nút Back (sau khi HTML đã render)
+  const backBtn = document.getElementById('back-to-dashboard');
+  if (backBtn && !backBtn.dataset.bound) {
+    backBtn.addEventListener('click', () => {
+      // charts.js có thể đang chạy interval → để charts.js tự clear; nếu muốn an toàn:
+      if (window.updateInterval) { clearInterval(window.updateInterval); window.updateInterval = null; }
+      showView('dashboard-view');
+    });
+    backBtn.dataset.bound = '1';
+  }
+
+  // View mặc định
+  showView('dashboard-view');
 }
 
-// Khởi chạy ứng dụng khi trang đã tải xong
-document.addEventListener('DOMContentLoaded', initApp);
+// KHÔNG cần DOMContentLoaded ở môi trường ThingsBoard
+// document.addEventListener('DOMContentLoaded', initApp);
